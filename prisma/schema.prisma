@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id             Int       @id @default(autoincrement()) @map("ID_usuario")
+  nome           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(100)
+  senha          String    @db.VarChar(64)
+  dataNascimento DateTime? @map("data_nascimento") @db.Date
+  ativo          Boolean   @default(true)
+
+  administrador Administrador?
+  cliente       Cliente?
+
+  @@map("usuario")
+}
+
+model Administrador {
+  id        Int     @id @default(autoincrement()) @map("ID_adm")
+  usuarioId Int     @unique @map("ID_usuario_adm")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("administrador")
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement()) @map("ID_cliente")
+  usuarioId Int     @unique @map("ID_usuario_cliente")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  jogosZerados JogoZerado[]
+  conquistas   ConquistaCliente[]
+  ranks        RankCliente[]
+
+  @@map("cliente")
+}
+
+model Jogo {
+  id        Int     @id @default(autoincrement()) @map("ID_jogo")
+  titulo    String  @db.VarChar(30)
+  descricao String? @db.VarChar(300)
+
+  categorias   JogoCategoria[]
+  jogosZerados JogoZerado[]
+
+  @@map("jogos")
+}
+
+model Categoria {
+  id        Int    @id @default(autoincrement()) @map("ID_categoria")
+  categoria String @unique @db.VarChar(20)
+
+  jogos JogoCategoria[]
+
+  @@map("categoria")
+}
+
+model JogoCategoria {
+  id          Int       @id @default(autoincrement()) @map("ID_jogos_categoria")
+  jogoId      Int       @map("ID_jogo")
+  categoriaId Int       @map("ID_categoria")
+  jogo        Jogo      @relation(fields: [jogoId], references: [id])
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+
+  @@unique([jogoId, categoriaId])
+  @@map("jogos_categoria")
+}
+
+model JogoZerado {
+  id            Int      @id @default(autoincrement()) @map("ID_jogos_zerados")
+  clienteId     Int      @map("ID_cliente")
+  jogoId        Int      @map("ID_jogo")
+  dataConclusao DateTime @default(now()) @map("data_conclusao")
+  cliente       Cliente  @relation(fields: [clienteId], references: [id])
+  jogo          Jogo     @relation(fields: [jogoId], references: [id])
+
+  @@unique([clienteId, jogoId])
+  @@map("jogos_zerados")
+}
+
+model Conquista {
+  id        Int    @id @default(autoincrement()) @map("ID_conquista")
+  nome      String @db.VarChar(100)
+  descricao String @db.VarChar(300)
+
+  clientes ConquistaCliente[]
+
+  @@map("conquista")
+}
+
+model ConquistaCliente {
+  id            Int       @id @default(autoincrement()) @map("ID_conquista_cliente")
+  clienteId     Int       @map("ID_cliente")
+  conquistaId   Int       @map("ID_conquista")
+  dataConquista DateTime  @default(now()) @map("data_conquista")
+  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  conquista     Conquista @relation(fields: [conquistaId], references: [id])
+
+  @@unique([clienteId, conquistaId])
+  @@map("conquista_cliente")
+}
+
+model RankSemanal {
+  id   Int      @id @default(autoincrement()) @map("ID_rank")
+  data DateTime @default(now()) @db.Date
+
+  clientes RankCliente[]
+
+  @@map("rank_semanal")
+}
+
+model RankCliente {
+  id            Int         @id @default(autoincrement()) @map("ID_rank_cliente")
+  rankId        Int         @map("ID_rank")
+  clienteId     Int         @map("ID_cliente")
+  pontuacaoRank Int         @default(0) @map("pontuacao_rank")
+  rank          RankSemanal @relation(fields: [rankId], references: [id])
+  cliente       Cliente     @relation(fields: [clienteId], references: [id])
+
+  @@unique([rankId, clienteId])
+  @@map("rank_cliente")
+}
