@@ -2,12 +2,15 @@ import express from "express";
 import { env } from "./config/env.js";
 import { checkConnection, prisma } from "./database/prisma.js";
 import gameRoutes from "./routes/gameRoutes.js";
+import adminGameRoutes from "./routes/adminGameRoutes.js";
 
 const app = express();
 
 app.use(express.json());
 
 app.use("/api", gameRoutes);
+
+app.use("/api", adminGameRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "API funcionando!" });
