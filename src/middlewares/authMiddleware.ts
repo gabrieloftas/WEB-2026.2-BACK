@@ -1,11 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 
+import "dotenv/config";
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { prisma } from "../database/prisma.js";
 
-import { PrismaClient } from '../generated/prisma';
-
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'segredo_temporario_dev';
+import { env } from "../config/env.js";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -15,60 +14,75 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-
-export const verifyAuth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const verifyAuth = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({ error: 'Token de autenticação não fornecido.' });
+    return res.status(401).json({
+      error: "Token de autenticação não fornecido.",
+    });
   }
 
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2) {
-    return res.status(401).json({ error: 'Erro no formato do token.' });
-  }
+  const [scheme, token] = authHeader.split(" ");
 
-  const [scheme, token] = parts;
-  if (!/^Bearer$/i.test(scheme)) {
-    return res.status(401).json({ error: 'Token mal formatado.' });
+  if (!scheme || !token || !/^Bearer$/i.test(scheme)) {
+    return res.status(401).json({
+      error: "Token mal formatado.",
+    });
   }
 
   try {
-    const decoded: any = jwt.verify(token, JWT_SECRET);
-    
-    
+    const decoded = jwt.verify(token, env.jwtSecret);
+
+    if (typeof decoded === "string" || typeof decoded.id !== "number") {
+      return res.status(401).json({
+        error: "Token inválido.",
+      });
+    }
+
     const usuario = await prisma.usuario.findUnique({
       where: { id: decoded.id },
-      include: { administrador: true } 
+      include: { administrador: true },
     });
 
     if (!usuario || !usuario.ativo) {
-      return res.status(401).json({ error: 'Usuário não encontrado ou inativo.' });
+      return res.status(401).json({
+        error: "Usuário não encontrado ou inativo.",
+      });
     }
 
-   
     req.user = {
       id: usuario.id,
       email: usuario.email,
-      isAdmin: !!usuario.administrador 
+      isAdmin: Boolean(usuario.administrador),
     };
 
     return next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Token inválido ou expirado.' });
+  } catch {
+    return res.status(401).json({
+      error: "Token inválido ou expirado.",
+    });
   }
 };
 
-
-export const verifyAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const verifyAdmin = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Usuário não autenticado.' });
+    return res.status(401).json({
+      error: "Usuário não autenticado.",
+    });
   }
 
-  
   if (!req.user.isAdmin) {
-    return res.status(403).json({ 
-      error: 'Acesso negado. Apenas administradores podem acessar este recurso.' 
+    return res.status(403).json({
+      error: "Apenas administradores podem acessar este recurso.",
     });
   }
 

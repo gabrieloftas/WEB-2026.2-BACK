@@ -1,14 +1,19 @@
-import { Router } from 'express';
-import { PrismaClient } from '../generated/prisma';
-import { verifyAuth, verifyAdmin } from '../middlewares/authMiddleware';
+import { Router } from "express";
+import { prisma } from "../database/prisma.js";
+import { verifyAuth, verifyAdmin } from "../middlewares/authMiddleware.js";
 
 const router = Router();
-const prisma = new PrismaClient();
 
 
 router.post('/admin/games', verifyAuth, verifyAdmin, async (req, res) => {
   try {
-    const { titulo, descricao, categoriaNome } = req.body;
+    const {
+  titulo,
+  descricao,
+  categoriaNome,
+  link,
+  publicado = true,
+} = req.body;
 
     
     if (!titulo || titulo.trim() === '') {
@@ -20,22 +25,26 @@ router.post('/admin/games', verifyAuth, verifyAdmin, async (req, res) => {
       data: {
         titulo,
         descricao,
-        categorias: categoriaNome ? {
-          create: {
-            categoria: {
-              connectOrCreate: {
-                where: { categoria: categoriaNome },
-                create: { categoria: categoriaNome }
-              }
+        link: link || null,
+        publicado,
+        categorias: categoriaNome
+          ? {
+              create: {
+                categoria: {
+                  connectOrCreate: {
+                    where: { categoria: categoriaNome },
+                    create: { categoria: categoriaNome },
+                  },
+                },
+              },
             }
-          }
-        } : undefined
+          : undefined,
       },
       include: {
         categorias: {
-          include: { categoria: true }
-        }
-      }
+          include: { categoria: true },
+        },
+      },
     });
 
     return res.status(201).json({

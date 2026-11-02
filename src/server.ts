@@ -1,29 +1,30 @@
-import express from "express";
+
+import "dotenv/config";
+import app from "./app.js";
 import { env } from "./config/env.js";
 import { checkConnection, prisma } from "./database/prisma.js";
-import gameRoutes from "./routes/gameRoutes.js";
-import adminGameRoutes from "./routes/adminGameRoutes.js";
-
-const app = express();
-
-app.use(express.json());
-
-app.use("/api", gameRoutes);
-
-app.use("/api", adminGameRoutes);
-
-app.get("/", (req, res) => {
-  res.json({ message: "API funcionando!" });
-});
 
 try {
   await checkConnection();
-} catch (err) {
-  console.error((err as Error).message);
+
+  const server = app.listen(env.port, () => {
+    console.log(`Servidor rodando na porta ${env.port}`);
+  });
+
+  // Encerramento organizado do servidor.
+  const shutdown = async () => {
+    console.log("Encerrando servidor...");
+
+    server.close(async () => {
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+} catch (error) {
+  console.error("Não foi possível iniciar a API:", error);
   await prisma.$disconnect();
   process.exit(1);
 }
-
-app.listen(env.port, () => {
-  console.log(`Servidor rodando na porta ${env.port}`);
-});

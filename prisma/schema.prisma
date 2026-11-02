@@ -41,16 +41,20 @@ model Cliente {
   @@map("cliente")
 }
 
+
 model Jogo {
-  id        Int     @id @default(autoincrement()) @map("ID_jogo")
-  titulo    String  @db.VarChar(30)
-  descricao String? @db.VarChar(300)
+  id        Int      @id @default(autoincrement()) @map("ID_jogo")
+  titulo    String   @db.VarChar(100)
+  descricao String?  @db.VarChar(300)
+  link      String?  @db.VarChar(500)
+  publicado Boolean  @default(false)
 
   categorias   JogoCategoria[]
   jogosZerados JogoZerado[]
 
   @@map("jogos")
 }
+
 
 model Categoria {
   id        Int    @id @default(autoincrement()) @map("ID_categoria")
