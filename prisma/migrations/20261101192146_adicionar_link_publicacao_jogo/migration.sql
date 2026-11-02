@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "jogos" ADD COLUMN     "link" VARCHAR(500),
+ADD COLUMN     "publicado" BOOLEAN NOT NULL DEFAULT false,
+ALTER COLUMN "titulo" SET DATA TYPE VARCHAR(100);

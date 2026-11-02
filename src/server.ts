@@ -1,14 +1,30 @@
-import express from "express";
 
-const app = express();
-const PORT = 3000;
+import "dotenv/config";
+import app from "./app.js";
+import { env } from "./config/env.js";
+import { checkConnection, prisma } from "./database/prisma.js";
 
-app.use(express.json());
+try {
+  await checkConnection();
 
-app.get("/", (req, res) => {
-  res.json({ message: "API funcionando!" });
-});
+  const server = app.listen(env.port, () => {
+    console.log(`Servidor rodando na porta ${env.port}`);
+  });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+  // Encerramento organizado do servidor.
+  const shutdown = async () => {
+    console.log("Encerrando servidor...");
+
+    server.close(async () => {
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+} catch (error) {
+  console.error("Não foi possível iniciar a API:", error);
+  await prisma.$disconnect();
+  process.exit(1);
+}
